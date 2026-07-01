@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Карточка контрагента (1С:УНФ Такси) + Чек-лист</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+      font-size: 13px;
+      background: #f0f2f5;
+      color: #333;
+      margin: 0;
+      padding: 20px 5%;   /* ← белые рамки ~30% от прежних широких полей */
+      overflow-x: hidden;
+    }
+
+    .workspace {
+      position: relative;
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card {
+      background: #fff;
+      box-shadow: none;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-header {
+      background: #f5f5f5;
+      border-bottom: 1px solid #d0d0d0;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .card-header .title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #111;
+    }
+    .card-header .subtitle {
+      font-size: 12px;
+      color: #666;
+    }
+    .card-header .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: transparent;
+      color: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: background 0.2s;
+    }
+    .btn-primary {
+      background: #4caf50;
+      border-color: #4caf50;
+      color: white;
+    }
+    .btn-primary:hover { background: #43a047; }
+    .btn-default {
+      background: transparent;
+      border: 1px solid #b0b0b0;
+      color: #333;
+    }
+    .btn-default:hover { background: #e0e0e0; }
+    .btn-light {
+      background: #fff;
+      border: 1px solid #c0c0c0;
+      color: #333;
+    }
+    .btn-light:hover { background: #f0f0f0; }
+
+    .toggle-checklist-btn {
+      background: #1e88e5;
+      border-color: #1e88e5;
+      color: white;
+      font-weight: 500;
+    }
+    .toggle-checklist-btn:hover {
+      background: #1565c0;
+    }
+
+    .card-body {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .tabs {
+      width: 200px;
+      background: #f9f9f9;
+      border-right: 1px solid #ddd;
+      padding: 4px 0;
+    }
+    .tab {
+      display: block;
+      padding: 10px 16px;
+      color: #333;
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      cursor: pointer;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+    .tab.active {
+      background: #fff;
+      border-left-color: #2b579a;
+      font-weight: 600;
+      color: #2b579a;
+    }
+    .tab:hover { background: #f0f0f0; }
+
+    .content {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background: #fff;
+    }
+
+    .section {
+      margin-bottom: 24px;
+    }
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #2b579a;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 4px;
+    }
+    .info-row {
+      display: flex;
+      margin-bottom: 8px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .info-label {
+      width: 170px;
+      flex-shrink: 0;
+      color: #555;
+      font-weight: 500;
+    }
+    .info-value {
+      flex: 1;
+      word-break: break-word;
+      background: #f5f5f5;
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      min-height: 24px;
+      min-width: 200px;
+    }
+    .checkbox-group {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      display: inline-block;
+      background: #e8f0fe;
+      color: #1a73e8;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+    .ellipsis {
+      color: #999;
+      cursor: default;
+      margin-left: 4px;
+    }
+    .note-text {
+      font-style: italic;
+      color: #888;
+      margin-left: 170px;
+      margin-top: 4px;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #e9e9e9;
+      margin: 16px 0;
+    }
+
+    .contact-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+    .contact-table th,
+    .contact-table td {
+      text-align: left;
+      padding: 8px 6px;
+      border-bottom: 1px solid #f0f0f0;
+      word-break: break-word;
+    }
+    .contact-table th {
+      color: #555;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    /* Выдвижная панель */
+    .slide-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 50%;
+      height: 100vh;
+      background: #f5f5f5;
+      box-shadow: -4px 0 12px rgba(0,0,0,0.15);
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid #ccc;
+    }
+    .slide-panel.open {
+      transform: translateX(0);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+    }
+    .panel-header h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .block {
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 12px;
+      margin-bottom: 12px;
+      border-radius: 4px;
+    }
+    .block.green-bg { background: #d4edda; }
+    .item { margin: 6px 0; display: flex; align-items: flex-start; flex-wrap: wrap; }
+    .flag { font-size: 18px; cursor: pointer; user-select: none; margin-right: 6px; flex-shrink: 0; }
+    .flag.grey { color: #9e9e9e; }
+    .flag.green { color: #28a745; }
+    .flag.red { color: #dc3545; }
+    .select {
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #888;
+      background: white;
+      font-family: inherit;
+      font-size: inherit;
+    }
+    .select.green-bg { background: #d4edda; }
+    .select.yellow-bg { background: #fff3cd; }
+    .select.red-bg { background: #f8d7da; }
+    .select.light-red-bg { background: #f8d7da; }
+    .group {
+      border: 2px dashed #ffc107;
+      padding: 8px;
+      margin: 4px 0 4px 20px;
+      background: #fff;
+      border-radius: 4px;
+    }
+    .group.green-border { border-color: #28a745; }
+    .date { color: #666; font-size: 12px; margin-left: 6px; }
+    .desc {
+      color: #666;
+      font-size: 12px;
+      font-style: italic;
+      display: block;
+      margin-top: 2px;
+      margin-left: 28px;
+      width: 100%;
+    }
+    .comment { color: #666; font-style: italic; margin-left: 10px; }
+    .note { font-size: 12px; color: #555; margin-top: 4px; }
+    h3 { margin: 0 0 4px 0; font-size: 15px; }
+    .subtitle { font-style: italic; color: #555; margin-bottom: 6px; }
+    .hidden { display: none; }
+    input, textarea {
+      margin-left: 6px;
+      padding: 4px 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 13px;
+    }
+    textarea { resize: vertical; }
+    .field-wide { flex: 1; min-width: 250px; }
+    .field-medium { width: 300px; }
+    .field-small { width: 150px; }
+    .legend {
+      margin-top: 20px;
+      background: white;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+  </style>
+</head>
+<body>
+<div class="workspace">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="title">ГРАЙНЕР ПЭКЭДЖИН ООО</div>
+        <div class="subtitle">Контрагент: Покупатель</div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary"><i class="fas fa-save"></i> Записать и закрыть</button>
+        <button class="btn btn-default">Продвижение</button>
+        <button class="btn btn-default">Связанные организации (ПИ)</button>
+        <button class="btn btn-default">Задачи (ПИ)</button>
+        <button class="btn btn-default">Скрипты (ПИ)</button>
+        <button class="btn toggle-checklist-btn" id="toggleChecklistBtn">
+          <i class="fas fa-list-ul"></i> Открыть Чек-лист работы с контрагентом
+        </button>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="tabs">
+        <div class="tab active">Основное</div>
+        <div class="tab">Адреса и телефоны</div>
+        <div class="tab">Контакты</div>
+        <div class="tab">Дополнительно</div>
+      </div>
+
+      <div class="content">
+        <div class="section">
+          <div class="section-title">О контрагенте</div>
+          <div class="checkbox-group">
+            <label><input type="checkbox" checked disabled> Покупатель</label>
+            <label><input type="checkbox" disabled> Поставщик</label>
+            <label><input type="checkbox" disabled> Прочие</label>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Полное наимен.:</span>
+            <span class="info-value">Общество с ограниченной ответственностью "ГРАЙНЕР ПЭКЭДЖИН"</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">В программе:</span>
+            <span class="info-value">ГРАЙНЕР ПЭКЭДЖИН ООО</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Юр. данные:</span>
+            <span class="info-value">ИНН: 3329026625 / КПП: 332901001</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Банк. счет:</span>
+            <span class="info-value">ФИЛИАЛ "ЦЕНТРАЛЬНЫЙ" БАНКА ВТБ (ПАО) (руб.) (основной)</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Адреса, телефоны</div>
+          <div class="info-row">
+            <span class="info-label"><i class="fas fa-phone"></i> Телефон:</span>
+            <span class="info-value">+7 (492) 2212720 <span class="ellipsis">...</span></span>
+          </div>
+          <div class="note-text">Примечание</div>
+          <div class="info-row" style="margin-top:8px;">
+            <span class="info-label"><i class="fas fa-envelope"></i> E-mail:</span>
+            <span class="info-value">a.shokin@greiner-gpi.ru <span class="ellipsis">...</span></span>
+          </div>
+          <div class="note-text">Примечание</div>
+          <div class="info-row" style="margin-top:8px;">
+            <span class="info-label"><i class="fas fa-map-marker-alt"></i> Юр. адрес:</span>
+            <span class="info-value">600031, Владимирская область, г. Владимир, ул. Добросельский, д. 2246 <span class="ellipsis">...</span></span>
+          </div>
+          <div class="note-text">Примечание</div>
+          <div class="info-row" style="margin-top:8px;">
+            <span class="info-label"><i class="fas fa-truck"></i> Доставка:</span>
+            <span class="info-value">Добросольская улица, д. 2246, Владимир, Россия (56.172479) <span class="ellipsis">...</span></span>
+          </div>
+          <div class="note-text">Примечание</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Контакты</div>
+          <table class="contact-table">
+            <thead>
+              <tr><th>Имя</th><th>Должность</th><th>Телефон</th><th>Email</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Кидалов Сергей</td>
+                <td>Не указано</td>
+                <td>+7 (920) 9205413</td>
+                <td>s.kidalov@greiner-gpi.com</td>
+              </tr>
+              <tr>
+                <td>Кукушин Сергей</td>
+                <td>Отдел закупок</td>
+                <td>+7 (492) 2212720, доб. 503 <span style="color:#888;">(еще 1)</span></td>
+                <td>S.Kukushkin@greiner-gpi.ru <span style="color:#888;">(еще 1)</span></td>
+              </tr>
+              <tr>
+                <td>Магницкая Мария Н.</td>
+                <td></td>
+                <td></td>
+                <td>magnitskaja@greiner-gpi.ru</td>
+              </tr>
+              <tr>
+                <td>Овчинников Александр Юрьевич</td>
+                <td>конструктор</td>
+                <td>+7 (492) 2212720 <span style="color:#888;">(еще 1)</span></td>
+                <td>ovchinnikov@greiner-gpi.ru <span style="color:#888;">(еще 1)</span> <span style="color:#888;">(основной)</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Классификация</div>
+          <div class="info-row"><span class="info-label">В группе:</span><span class="info-value">—</span></div>
+          <div style="margin-top:8px;"><strong># Теги:</strong></div>
+          <div style="margin-top:4px;">
+            <span class="tag">Битрикс24 CMC и WhatsApp - Онлайн чат</span>
+            <span class="tag">Mob. 8 920 902 51 99</span>
+            <span class="tag">Watsapp 8(920) 900 34 52</span>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-title">Детали</div>
+          <div class="info-row"><span class="info-label">Источник:</span><span class="info-value">...</span></div>
+          <div class="info-row"><span class="info-label">Заметки:</span><span class="info-value"></span></div>
+        </div>
+        <div class="section">
+          <div class="section-title">Ответственный</div>
+          <div class="info-row"><span class="info-label">Ответственный:</span><span class="info-value">Сазонова Галина Михайловна</span></div>
+          <div class="info-row"><span class="info-label">Предыдущий ответственный (ПИ):</span><span class="info-value">empty</span></div>
+        </div>
+        <div class="section">
+          <div class="section-title">Доступ</div>
+          <div class="info-row"><span class="info-label">Доступ:</span><span class="info-value">Сазонова Галина Михайловна</span></div>
+        </div>
+        <div class="section">
+          <div class="section-title">Категоризация</div>
+          <div class="info-row"><span class="info-label">Категория (ПИ):</span><span class="info-value">D</span></div>
+          <div class="info-row"><span class="info-label">Клиент (ПИ):</span><span class="info-value">Da</span></div>
+        </div>
+        <div class="section">
+          <div class="section-title">Статус контрагента (ПИ)</div>
+          <div class="info-value">Потенциальный</div>
+        </div>
+        <div class="section">
+          <div class="section-title">Сегментация</div>
+          <div class="info-row"><span class="info-label">ОКВЭД:</span><span class="info-value">22.22</span></div>
+          <div class="info-value" style="margin-top:2px;">Производство пластмассовых изделий для упаковывания товаров</div>
+          <div class="info-row" style="margin-top:6px;"><span class="info-label">Тип покупателя (ПИ):</span><span class="info-value">Для собственных нужд на производстве (регулярная порта...</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-panel" id="checklistPanel">
+    <div class="panel-header">
+      <h2>📋 Чек-лист проработки</h2>
+      <button class="btn btn-light" id="closePanelBtn">
+        <i class="fas fa-times"></i> Закрыть
+      </button>
+    </div>
+    <div class="panel-body">
+      <div class="block green-bg" id="block1">
+        <h3>БЛОК 1 — ПОДГОТОВКА</h3>
+        <div class="subtitle">Обязательная последовательность действий перед началом проработки клиента</div>
+        <div class="item">
+          <span class="flag green" onclick="toggleFlag(this, 'block1')">☑</span> Профиль компании изучен
+          <div class="desc">Изучены сайт, сфера деятельности, масштаб бизнеса (оборот, штат) и ключевая продукция/услуги компании.</div>
+        </div>
+        <div class="item">
+          <span class="flag green" onclick="toggleFlag(this, 'block1')">☑</span> Скрипт разговора выбран
+          <div class="desc">Продуман сценарий первого касания: учтена отрасль клиента, подобран релевантный пример наших работ в этой отрасли и сформулирован ключевой аргумент для начала разговора.</div>
+        </div>
+        <div class="item">
+          <span class="flag green" onclick="toggleFlag(this, 'block1')">☑</span> Фиксация готовности
+          <div class="desc">Подготовка завершена, зафиксирована готовность к первому контакту.</div>
+        </div>
+      </div>
+
+      <hr>
+
+      <h3>📞 БЛОК 2 — ПЕРВЫЙ КОНТАКТ</h3>
+      <div class="subtitle">Дозвон до компании и подтверждение её потребности в закупках по нашему профилю.</div>
+      <div class="block" id="block2">
+        <div class="item">
+          Статус дозвона:&nbsp;<select id="callStatus" class="select" onchange="updateBlock2()">
+            <option value="success">Дозвон успешен</option>
+            <option value="noanswer">Автоответчик / не берут</option>
+            <option value="secretary">Секретарь / общий отдел</option>
+            <option value="reject">Жёсткий отказ</option>
+          </select>
+          <span class="date">[Дата: <span id="callDate">13.05.2026</span>]</span>
+          <div class="desc">Зафиксировать результат попытки дозвона.</div>
+        </div>
+        <div id="repeatBlock" class="hidden">
+          <div class="item">
+            <span class="flag green" onclick="toggleFlag(this)">☑</span> Повторный дозвон запланирован
+            <div class="desc">Менеджер назначил дату следующей попытки или ведёт поиск дополнительных контактов.</div>
+            <div style="margin-left: 28px;">
+              Дата следующего звонка: <input type="text" placeholder="ДД.ММ.ГГГГ" size="10">
+              <label><input type="checkbox"> Идёт поиск других телефонов:</label> <input type="text" size="40" placeholder="Укажите где ищете">
+            </div>
+          </div>
+        </div>
+        <div id="needConfirmed" class="hidden">
+          <div class="item">
+            <span class="flag green" onclick="toggleFlag(this)">☑</span> Потребность подтверждена
+            <div class="desc">В разговоре получено устное подтверждение, что компания реально закупает детали по нашему профилю, и это не разовая акция.</div>
+          </div>
+        </div>
+        <div id="hardRejectMsg" class="hidden">
+          <div class="note" style="margin-top:8px; color: red;">→ Сразу переход к Блоку 4 (Отказ), минуя Блок 3.</div>
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="block" id="block3">
+        <h3>БЛОК 3 — РАБОТА С ЛПР</h3>
+        <div class="subtitle">Поиск лица, принимающего решения по закупкам деталей (инженер, технолог, снабженец, руководитель) и установление прямого контакта.</div>
+        <div class="item">
+          <span class="flag green" onclick="toggleFlag(this)">☑</span> Контакт ЛПР установлен
+          <input type="text" placeholder="ФИО, должность, телефон, email" class="field-medium">
+          <div class="desc">Получены и зафиксированы ФИО, должность, прямой телефон, email.</div>
+        </div>
+        <div class="item">
+          <span class="flag green" onclick="toggleFlag(this)">☑</span> Потребность ЛПР уточнена
+          <input type="text" placeholder="Для кого закупают, ГОЗ/коммерция, сроки, объёмы, периодичность" class="field-wide">
+          <div class="desc">Выяснены: для кого закупают (себя, клиентов, перепродажа), ГОЗ/коммерция, сроки, объёмы, периодичность.</div>
+        </div>
+        <div class="item">
+          <span class="flag grey" onclick="toggleFlag(this)">☐</span> Возражения ЛПР отработаны
+          <textarea placeholder="Какие возражения и как отработаны" rows="2" class="field-medium" style="font-family: inherit; font-size: 13px;"></textarea>
+          <div class="desc">Зафиксированы типовые возражения (работаем с другими, редко требуется, тендер, ничего не нужно) и отработаны по скрипту.</div>
+        </div>
+        <div class="item">
+          <span class="flag grey" onclick="toggleFlag(this)">☐</span> Информационное письмо о нас отправлено
+          <div class="desc">Отправлено информационное письмо с примерами работ, портфолио, референс-листом.</div>
+        </div>
+        <div class="item">
+          <span class="flag grey" onclick="toggleFlag(this)">☐</span> Чертежи получены, создана заявка на расчёт
+          <input type="text" placeholder="№" class="field-small">
+          <div class="desc">Чертежи загружены, создана заявка на просчёт.</div>
+        </div>
+        <div class="item">
+          <span class="flag grey" onclick="toggleFlag(this)">☐</span> Обратная связь по цене дана
+          <div class="desc">Менеджер озвучил стоимость и сроки, принял обратную реакцию, отработал возражения по цене.</div>
+        </div>
+      </div>
+
+      <hr>
+
+      <h3>🏁 БЛОК 4 — ЗАКРЫТИЕ СДЕЛКИ</h3>
+      <div class="subtitle">Завершение проработки — успех или отказ с фиксацией причин.</div>
+      <div class="block" id="block4">
+        <div class="item">
+          Результат проработки:&nbsp;<select id="resultSelect" class="select" onchange="updateBlock4()">
+            <option value="success">Успех</option>
+            <option value="pause">Пауза</option>
+            <option value="reject">Отказ</option>
+          </select>
+          <div class="desc">Фиксация итога проработки клиента.</div>
+        </div>
+        <div id="successGroup" class="hidden" style="margin-left:20px;">
+          <div class="item"><span class="flag green" onclick="toggleFlag(this)">☑</span> Счёт на предоплату выставлен</div>
+          <div class="item"><span class="flag green" onclick="toggleFlag(this)">☑</span> Предоплата получена</div>
+          <div class="item"><span class="flag green" onclick="toggleFlag(this)">☑</span> Первый заказ выполнен без брака</div>
+          <div class="desc">Выставление счёта, получение предоплаты и завершение первого заказа.</div>
+          <div class="note">(Блок 5 не появляется)</div>
+        </div>
+        <div id="pauseGroup" class="hidden" style="margin-left:20px;">
+          <div class="item">Ожидается решение клиента</div>
+          <div class="item" style="margin-top:4px;">
+            Следующий контакт запланирован на: <input type="text" placeholder="ДД.ММ.ГГГГ" size="10">
+          </div>
+          <div class="desc">Клиент взял время на размышление или перенос сроков. Менеджер фиксирует дату следующего касания.</div>
+          <div class="note">(Блок 5 не появляется)</div>
+        </div>
+        <div id="rejectGroup" class="hidden" style="margin-left:20px;">
+          <div class="item">Причина отказа:
+            <select id="rejectReason" class="select light-red-bg" onchange="updateRejectReason()">
+              <option value="price">Цена выше ожиданий</option>
+              <option value="no_need">Нет потребности прямо сейчас</option>
+              <option value="own_machines">Свой парк станков</option>
+              <option value="not_profile">Не наш профиль</option>
+              <option value="timing">Сроки</option>
+              <option value="military">Военная приёмка</option>
+              <option value="exclusive">Эксклюзивный поставщик</option>
+              <option value="liquidated">Ликвидация, смена профиля, дубль</option>
+              <option value="other">Иное</option>
+            </select>
+            <div id="rejectCommentBlock" style="margin-top:4px;">
+              <input type="text" placeholder="Краткий комментарий (при необходимости)" size="40">
+            </div>
+            <div class="desc">Выбрать из списка.</div>
+          </div>
+          <div id="maxActionsGroup">
+            <div class="group" id="maxActionsFrame">
+              <div class="item">
+                <span class="flag green" onclick="toggleFlag(this, null, 'max')">☑</span> ≥ 5 касаний
+                <div class="desc">Совершено не менее пяти попыток дозвона/контакта с разными формулировками и в разное время.</div>
+              </div>
+              <div class="item">
+                <span class="flag green" onclick="toggleFlag(this, null, 'max')">☑</span> Выход на 2-х разных ЛПР
+                <div class="desc">Проведены переговоры с двумя разными сотрудниками, принимающими решения по закупкам (например, снабженец + главный инженер).</div>
+              </div>
+              <div class="item">
+                <span class="flag grey" onclick="toggleFlag(this, null, 'max')">☐</span> Попытка обойти снабженческий блок
+                <div class="desc">Предпринята попытка прямого контакта с главным инженером, техническим директором или руководителем, минуя снабженца.</div>
+              </div>
+              <div class="note" id="maxFrameNote">Жёлтая рамка — максимум не подтверждён.</div>
+              <div class="desc">Подтверждение выполнения максимума действий перед деактивацией.</div>
+            </div>
+          </div>
+          <div class="item"><span id="ropTransferFlag" class="flag red" onclick="toggleRopTransfer()">☐</span> Клиент передан РОПу <span id="ropTransferNote" class="comment">(не активна, пока максимум не выполнен)</span>
+            <div class="desc">Передача руководителю для окончательного решения.</div>
+          </div>
+          <div class="note">→ Блок 5 появится при передаче.</div>
+        </div>
+      </div>
+
+      <hr>
+
+      <h3>📦 БЛОК 5 — ФИКСАЦИЯ ОТКАЗА И ДЕАКТИВАЦИЯ</h3>
+      <div class="subtitle">Отображается только если Результат = Отказ</div>
+      <div class="block" id="block5">
+        <div class="item"><span id="maxConfirmedFlag" class="flag green" onclick="if(checkAllMax()) toggleFlag(this)">☑</span> Максимум действий подтверждён (авто) <span class="comment">все три пункта отмечены</span>
+          <div class="desc">Автоматически становится «да», когда отмечены все три пункта (≥5 касаний, 2 ЛПР, обход).</div>
+        </div>
+        <div class="item"><span id="ropFinalFlag" class="flag green" onclick="toggleFlag(this)">☑</span> Клиент передан РОПу
+          <div class="desc">Финальная отметка менеджера о передаче клиента руководителю для деактивации.</div>
+        </div>
+        <div class="note">После передачи РОП принимает решение о деактивации.</div>
+      </div>
+
+      <div class="legend">
+        <strong>Цвета и обозначения:</strong>
+        <span style="background:#d4edda; padding:2px 6px; border-radius:3px;">☑ зелёный – выполнено</span>
+        <span style="background:#e0e0e0; padding:2px 6px; border-radius:3px;">☐ серый – не выполнено</span>
+        <span style="background:#fff3cd; padding:2px 6px; border-radius:3px;">жёлтый – внимание</span>
+        <span style="background:#f8d7da; padding:2px 6px; border-radius:3px;">красный – отказ/ошибка</span>
+        <span style="border:2px dashed #ffc107; padding:2px 6px; border-radius:3px;">жёлтая рамка – неполный максимум</span>
+        <span style="border:2px solid #28a745; padding:2px 6px; border-radius:3px;">зелёная рамка – максимум выполнен</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const toggleBtn = document.getElementById('toggleChecklistBtn');
+  const panel = document.getElementById('checklistPanel');
+  const closeBtn = document.getElementById('closePanelBtn');
+
+  function openPanel() {
+    panel.classList.add('open');
+    toggleBtn.innerHTML = '<i class="fas fa-list-ul"></i> Скрыть Чек-лист';
+  }
+
+  function closePanel() {
+    panel.classList.remove('open');
+    toggleBtn.innerHTML = '<i class="fas fa-list-ul"></i> Открыть Чек-лист работы с контрагентом';
+  }
+
+  toggleBtn.addEventListener('click', function() {
+    if (panel.classList.contains('open')) {
+      closePanel();
+    } else {
+      openPanel();
+    }
+  });
+
+  closeBtn.addEventListener('click', closePanel);
+
+  function toggleFlag(span, blockId, group) {
+    if (span.classList.contains('green')) {
+      span.classList.remove('green');
+      span.classList.add('grey');
+      span.textContent = '☐';
+    } else {
+      span.classList.remove('grey');
+      span.classList.add('green');
+      span.textContent = '☑';
+    }
+    if (blockId === 'block1') updateBlock1Background();
+    if (group === 'max') updateMaxFrame();
+    updateMaxConfirmed();
+  }
+
+  function updateBlock1Background() {
+    const flags = document.querySelectorAll('#block1 .flag');
+    let allGreen = true;
+    flags.forEach(f => { if (f.classList.contains('grey') || f.textContent === '☐') allGreen = false; });
+    document.getElementById('block1').classList.toggle('green-bg', allGreen);
+  }
+
+  function updateMaxFrame() {
+    const frame = document.getElementById('maxActionsFrame');
+    const flags = frame.querySelectorAll('.flag');
+    let allGreen = true;
+    flags.forEach(f => { if (f.classList.contains('grey') || f.textContent === '☐') allGreen = false; });
+    if (allGreen) {
+      frame.classList.add('green-border');
+      frame.classList.remove('group');
+      document.getElementById('maxFrameNote').textContent = 'Зелёная рамка — максимум выполнен.';
+    } else {
+      frame.classList.remove('green-border');
+      frame.classList.add('group');
+      document.getElementById('maxFrameNote').textContent = 'Жёлтая рамка — максимум не подтверждён.';
+    }
+    const reason = document.getElementById('rejectReason').value;
+    const ropFlag = document.getElementById('ropTransferFlag');
+    if (allGreen || reason === 'liquidated') {
+      ropFlag.style.pointerEvents = 'auto';
+      ropFlag.style.opacity = '1';
+      document.getElementById('ropTransferNote').textContent = '(можно отметить)';
+    } else {
+      ropFlag.style.pointerEvents = 'none';
+      ropFlag.style.opacity = '0.6';
+      document.getElementById('ropTransferNote').textContent = '(не активна, пока максимум не выполнен)';
+    }
+  }
+
+  function checkAllMax() {
+    const flags = document.querySelectorAll('#maxActionsFrame .flag');
+    return Array.from(flags).every(f => f.classList.contains('green') || f.textContent === '☑');
+  }
+
+  function updateMaxConfirmed() {
+    const confirmed = document.getElementById('maxConfirmedFlag');
+    if (checkAllMax()) {
+      confirmed.classList.add('green');
+      confirmed.classList.remove('grey');
+      confirmed.textContent = '☑';
+    } else {
+      confirmed.classList.add('grey');
+      confirmed.classList.remove('green');
+      confirmed.textContent = '☐';
+    }
+  }
+
+  function toggleRopTransfer() {
+    const flag = document.getElementById('ropTransferFlag');
+    if (flag.classList.contains('red')) {
+      flag.classList.add('green');
+      flag.classList.remove('red');
+      flag.textContent = '☑';
+    } else {
+      flag.classList.add('red');
+      flag.classList.remove('green');
+      flag.textContent = '☐';
+    }
+  }
+
+  function updateBlock2() {
+    const status = document.getElementById('callStatus').value;
+    document.getElementById('repeatBlock').classList.add('hidden');
+    document.getElementById('needConfirmed').classList.add('hidden');
+    document.getElementById('hardRejectMsg').classList.add('hidden');
+    const select = document.getElementById('callStatus');
+    select.className = 'select';
+    if (status === 'success') {
+      select.classList.add('green-bg');
+      document.getElementById('needConfirmed').classList.remove('hidden');
+    } else if (status === 'noanswer' || status === 'secretary') {
+      select.classList.add('yellow-bg');
+      document.getElementById('repeatBlock').classList.remove('hidden');
+    } else if (status === 'reject') {
+      select.classList.add('red-bg');
+      document.getElementById('hardRejectMsg').classList.remove('hidden');
+    }
+  }
+
+  function updateBlock4() {
+    const result = document.getElementById('resultSelect').value;
+    document.getElementById('successGroup').classList.add('hidden');
+    document.getElementById('pauseGroup').classList.add('hidden');
+    document.getElementById('rejectGroup').classList.add('hidden');
+    const select = document.getElementById('resultSelect');
+    select.className = 'select';
+    if (result === 'success') {
+      select.classList.add('green-bg');
+      document.getElementById('successGroup').classList.remove('hidden');
+    } else if (result === 'pause') {
+      select.classList.add('yellow-bg');
+      document.getElementById('pauseGroup').classList.remove('hidden');
+    } else if (result === 'reject') {
+      select.classList.add('red-bg');
+      document.getElementById('rejectGroup').classList.remove('hidden');
+      updateRejectReason();
+    }
+  }
+
+  function updateRejectReason() {
+    const reason = document.getElementById('rejectReason').value;
+    const maxActions = document.getElementById('maxActionsGroup');
+    const ropNote = document.getElementById('ropTransferNote');
+    const ropFlag = document.getElementById('ropTransferFlag');
+    document.getElementById('rejectCommentBlock').classList.remove('hidden');
+    if (reason === 'liquidated') {
+      maxActions.classList.add('hidden');
+      ropNote.textContent = '(можно сразу)';
+      ropFlag.style.pointerEvents = 'auto';
+      ropFlag.style.opacity = '1';
+    } else {
+      maxActions.classList.remove('hidden');
+      ropNote.textContent = '(не активна, пока максимум не выполнен)';
+      if (!checkAllMax()) {
+        ropFlag.style.pointerEvents = 'none';
+        ropFlag.style.opacity = '0.6';
+      } else {
+        ropFlag.style.pointerEvents = 'auto';
+        ropFlag.style.opacity = '1';
+      }
+    }
+  }
+
+  window.onload = function() {
+    updateBlock2();
+    updateBlock4();
+    updateMaxFrame();
+    updateMaxConfirmed();
+  };
+</script>
+</body>
+</html>
